@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "keyneg-mcp"
+version = "0.1.0"
+description = "MCP Server for KeyNeg sentiment analysis - the first general-purpose sentiment analysis tool for Claude, ChatGPT, and Gemini"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Kaossara Osseni", email = "admin@grandnasser.com" }
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "sentiment-analysis",
+    "keyneg",
+    "nlp",
+    "claude",
+    "anthropic",
+    "ai-tools",
+]
+
+dependencies = [
+    "mcp>=1.0.0",
+    "keyneg-enterprise-rs>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+
+[project.urls]
+Homepage = "https://grandnasser.com"
+Repository = "https://github.com/Osseni94/keyneg-mcp"
+Documentation = "https://grandnasser.com/docs/keyneg-mcp"
+
+[project.scripts]
+keyneg-mcp = "keyneg_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/keyneg_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
