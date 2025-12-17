@@ -17,10 +17,7 @@ from mcp.server.fastmcp import FastMCP
 from keyneg_mcp.licensing import license_manager, LicenseTier
 
 # Initialize MCP server
-mcp = FastMCP(
-    name="keyneg",
-    version="0.1.0",
-)
+mcp = FastMCP(name="keyneg")
 
 # Lazy load KeyNeg to avoid import errors if not installed
 _keyneg_instance = None
