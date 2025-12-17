@@ -34,11 +34,9 @@ def get_keyneg():
         from keyneg import KeyNeg
 
         # Check for model path in environment or default location
-        model_path = os.environ.get("KEYNEG_MODEL_PATH")
+        model_dir = os.environ.get("KEYNEG_MODEL_PATH")
 
-        if model_path:
-            _keyneg_instance = KeyNeg(model_path=model_path)
-        else:
+        if not model_dir:
             # Try default locations
             default_paths = [
                 os.path.expanduser("~/.keyneg/models/all-mpnet-base-v2"),
@@ -46,16 +44,26 @@ def get_keyneg():
                 "./models",
             ]
             for path in default_paths:
-                if os.path.exists(path):
-                    _keyneg_instance = KeyNeg(model_path=path)
+                if os.path.exists(path) and os.path.isfile(os.path.join(path, "model.onnx")):
+                    model_dir = path
                     break
 
-            if _keyneg_instance is None:
-                raise FileNotFoundError(
-                    "KeyNeg model not found. Please set KEYNEG_MODEL_PATH or "
-                    "install models to ~/.keyneg/models/"
-                )
+        if not model_dir:
+            raise FileNotFoundError(
+                "KeyNeg model not found. Please set KEYNEG_MODEL_PATH or "
+                "install models to ~/.keyneg/models/"
+            )
 
+        # Build paths to model and tokenizer
+        model_path = os.path.join(model_dir, "model.onnx")
+        tokenizer_path = os.path.join(model_dir, "tokenizer.json")
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found: {model_path}")
+        if not os.path.exists(tokenizer_path):
+            raise FileNotFoundError(f"Tokenizer file not found: {tokenizer_path}")
+
+        _keyneg_instance = KeyNeg(model_path, tokenizer_path)
         return _keyneg_instance
 
     except ImportError:
