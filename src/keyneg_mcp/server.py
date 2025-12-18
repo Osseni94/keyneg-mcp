@@ -385,6 +385,133 @@ def get_usage_info() -> dict:
 
 
 @mcp.tool()
+def summarize_by_label(
+    texts: list[str],
+    top_n: int = 3,
+    examples_per_label: int = 3,
+) -> dict:
+    """
+    Analyze multiple texts and group them by sentiment label.
+
+    Takes a batch of texts, analyzes each for sentiment, and returns
+    a summary grouped by label with example quotes for each complaint type.
+    Perfect for generating reports from customer feedback or reviews.
+
+    Args:
+        texts: List of texts to analyze and group
+        top_n: Number of sentiment labels to consider per text (default: 3)
+        examples_per_label: Max example quotes per label (default: 3)
+
+    Returns:
+        Dictionary with labels, counts, and example quotes for each
+
+    Example:
+        summarize_by_label([
+            "The service was terrible",
+            "Staff was rude and unhelpful",
+            "Billing department never responds",
+            "Service is consistently poor"
+        ])
+        -> Returns:
+        {
+            "poor customer service": {
+                "count": 3,
+                "examples": ["The service was terrible", "Service is consistently poor", ...]
+            },
+            "unresponsive support": {
+                "count": 1,
+                "examples": ["Billing department never responds"]
+            }
+        }
+    """
+    # Check if batch is enabled
+    if not license_manager.get_feature("batch_enabled", False):
+        return {
+            "error": "Summarize by label requires Trial, Pro, or Enterprise tier",
+            "tier": license_manager.current_tier.value,
+            "upgrade_url": "https://grandnasser.com/docs/keyneg-rs",
+        }
+
+    # Limit number of texts
+    max_texts = 100
+    if len(texts) > max_texts:
+        texts = texts[:max_texts]
+
+    try:
+        kn = get_keyneg()
+        max_labels = license_manager.get_feature("max_sentiment_labels", 3)
+        actual_top_n = min(top_n, max_labels)
+
+        # Group by label
+        label_groups = {}
+        processed = 0
+        errors = 0
+
+        for text in texts:
+            # Check usage
+            allowed, message = license_manager.check_and_increment_usage()
+            if not allowed:
+                errors += 1
+                continue
+
+            try:
+                sentiments = kn.extract_sentiments(text, top_n=actual_top_n)
+                processed += 1
+
+                # Add text to each of its top labels
+                for label, score in sentiments:
+                    if label not in label_groups:
+                        label_groups[label] = {
+                            "count": 0,
+                            "total_score": 0.0,
+                            "examples": [],
+                        }
+
+                    label_groups[label]["count"] += 1
+                    label_groups[label]["total_score"] += score
+
+                    # Store example with score
+                    if len(label_groups[label]["examples"]) < examples_per_label:
+                        truncated = text[:150] + "..." if len(text) > 150 else text
+                        label_groups[label]["examples"].append({
+                            "text": truncated,
+                            "score": round(score, 4),
+                        })
+
+            except Exception:
+                errors += 1
+                continue
+
+        # Format output - sort by count descending
+        summary = {}
+        for label, data in sorted(label_groups.items(), key=lambda x: -x[1]["count"]):
+            avg_score = data["total_score"] / data["count"] if data["count"] > 0 else 0
+            summary[label] = {
+                "count": data["count"],
+                "avg_score": round(avg_score, 4),
+                "examples": data["examples"],
+            }
+
+        response = {
+            "total_texts": len(texts),
+            "processed": processed,
+            "errors": errors,
+            "unique_labels": len(summary),
+            "summary": summary,
+        }
+
+        # Add tier info for limited tiers
+        if license_manager.current_tier in (LicenseTier.FREE, LicenseTier.TRIAL):
+            response["tier"] = license_manager.current_tier.value
+            response["upgrade_url"] = "https://grandnasser.com/docs/keyneg-rs"
+
+        return response
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
 def get_sentiment_labels() -> dict:
     """
     Get the list of all available sentiment labels.

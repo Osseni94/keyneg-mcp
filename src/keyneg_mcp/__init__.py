@@ -4,7 +4,7 @@
 # Author: Kaossara Osseni
 # Email: admin@grandnasser.com
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from keyneg_mcp.server import mcp, main
 
